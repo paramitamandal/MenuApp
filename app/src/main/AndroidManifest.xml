@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.menuapp">
+    package="com.sip.menuapp">
 
     <application
         android:allowBackup="true"
@@ -10,7 +10,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MenuItemListActivity"
+            android:name="com.sip.menuapp.MenuItemListActivity"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
@@ -19,20 +19,20 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".MenuItemDetailActivity"
+            android:name="com.sip.menuapp.MenuItemDetailActivity"
             android:label="@string/title_menuitem_detail"
-            android:parentActivityName=".MenuItemListActivity"
+            android:parentActivityName="com.sip.menuapp.MenuItemListActivity"
             android:theme="@style/AppTheme.NoActionBar">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.menuapp.MenuItemListActivity" />
+                android:value="com.sip.menuapp.MenuItemListActivity" />
         </activity>
         <provider
-            android:name=".ItemProvider"
-            android:authorities="com.menuapp.sync"
+            android:name="com.sip.menuapp.ItemProvider"
+            android:authorities="com.sip.menuapp.sync"
             android:exported="false"
             android:syncable="true"/>
-        <service android:name=".AuthenticatorService">
+        <service android:name="com.sip.menuapp.service.AuthenticatorService">
             <intent-filter>
                 <action android:name="android.accounts.AccountAuthenticator"/>
             </intent-filter>
@@ -41,7 +41,7 @@
                 android:resource="@xml/authenticator"/>
         </service>
         <service
-            android:name=".SyncService"
+            android:name="com.sip.menuapp.service.SyncService"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.content.SyncAdapter"/>

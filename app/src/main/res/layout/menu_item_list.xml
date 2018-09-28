@@ -12,17 +12,22 @@
     android:showDividers="middle"
     tools:context=".MenuItemListActivity">
 
-    <android.support.v7.widget.RecyclerView
-        xmlns:android="http://schemas.android.com/apk/res/android"
+    <!--
+    This layout is a two-pane layout for the MenuItems
+    master/detail flow.
+    
+    -->
+
+    <android.support.v7.widget.RecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
         android:id="@+id/category_list"
-        android:name="com.menuapp.MenuItemListFragment"
+        android:name="com.sip.menuapp.MenuItemListFragment"
         android:layout_width="@dimen/item_width"
         android:layout_height="match_parent"
         android:layout_marginLeft="16dp"
         android:layout_marginRight="16dp"
         app:layoutManager="LinearLayoutManager"
-        tools:context="com.menuapp.MenuItemListActivity"
+        tools:context="com.sip.menuapp.MenuItemListActivity"
         tools:listitem="@layout/single_menu_item" />
 
     <FrameLayout

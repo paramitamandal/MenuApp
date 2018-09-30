@@ -17,6 +17,7 @@ import android.util.Log;
 import com.sip.menuapp.Item;
 import com.sip.menuapp.ItemContract;
 import com.sip.menuapp.ItemParser;
+import com.sip.menuapp.MenuItemListActivity;
 import com.sip.menuapp.service.SyncService;
 
 import org.json.JSONArray;
@@ -35,6 +36,7 @@ import java.util.Map;
 public class SyncAdapter extends AbstractThreadedSyncAdapter {
     private static final String TAG = "SYNC_ADAPTER";
     private Context context;
+    public static String serverURL;
     /**
      * This gives us access to our local data source.
      */
@@ -49,6 +51,8 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
         super(c, autoInit, parallelSync);
         this.resolver = c.getContentResolver();
         this.context = c;
+//        MenuItemListActivity activity = (MenuItemListActivity) this.context;
+//        serverURL = activity.getServerURL();
     }
 
     /**
@@ -90,7 +94,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
      * @param syncResult Write our stats to this
      */
     private void syncNewsFeed(SyncResult syncResult) throws IOException, JSONException, RemoteException, OperationApplicationException {
-        final String rssFeedEndpoint = "http://192.168.59.8:8080/api/getRecords";
+        final String rssFeedEndpoint = serverURL + "api/getRecords";//"http://192.168.59.5:8080/api/getRecords";
 //        final String rssFeedEndpoint = "http://192.168.1.12:8080/api/getRecords";
 
         // We need to collect all the network items in a hash table

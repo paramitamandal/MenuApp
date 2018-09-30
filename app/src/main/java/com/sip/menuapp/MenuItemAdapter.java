@@ -2,6 +2,7 @@ package com.sip.menuapp;
 
 import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentActivity;
 import android.support.v7.widget.RecyclerView;
@@ -25,6 +26,8 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
     private List<Item> itemList = new ArrayList<>();
     private final FragmentActivity fragmentActivity;
     Context context;
+    public static String serverURL;
+
     public MenuItemAdapter(FragmentActivity parent,
                            List<Item> items) {
         fragmentActivity = parent;
@@ -91,7 +94,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
                     dialog.getWindow().setAttributes(lp);
 
 
-                    WebView webView = (WebView) dialog.findViewById(R.id.video_view);
+                    final WebView webView = (WebView) dialog.findViewById(R.id.video_view);
 
                     webView.setWebViewClient(new WebViewClient());
                     webView.getSettings().setJavaScriptEnabled(true);
@@ -99,13 +102,19 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
                     webView.getSettings().setPluginState(WebSettings.PluginState.ON);
                     webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
                     webView.setWebChromeClient(new WebChromeClient());
-                    webView.loadUrl("http://192.168.59.8:8080/api/getVideo?id=80");
 
-//                    String uriPath = "http://localhost:8080/api/getVideo?id=80"; //update package name
-//                    Uri uri = Uri.parse(uriPath);
-//
-//                    videoView.setVideoURI(uri);
-//                    videoView.start();
+//                    MenuItemListActivity activity = (MenuItemListActivity) context;
+//                    String serverURL = activity.getServerURL();
+                    String serverURLWithEndPoint = serverURL + "api/getVideo?id=80";
+                    webView.loadUrl(serverURLWithEndPoint);
+
+                    dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                        @Override
+                        public void onCancel(DialogInterface dialog) {
+                            System.out.print("######################Dialog is dismissed.................");
+                            webView.destroy();
+                        }
+                    });
                 }
             });
         }

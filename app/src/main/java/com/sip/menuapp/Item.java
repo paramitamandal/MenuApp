@@ -36,7 +36,8 @@ public class Item {
     }
 
     public String getDescription() {
-        return description;
+        return "nkvefbehwbaherfvrhfgvgh njvbfvbhhrwhabhjfb jherkjhqktuighbbvcnbnb";
+//        return description;
     }
 
     public String getVideoPath() {
@@ -44,7 +45,8 @@ public class Item {
     }
 
     public String getPrice() {
-        return price;
+        return "300";
+//        return price;
     }
 
     public String getCategory() {

@@ -1,16 +1,22 @@
 package com.sip.menuapp;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.ContentObserver;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -25,6 +31,14 @@ import com.sip.menuapp.database.DbContent;
 import com.sip.menuapp.database.SyncAdapter;
 import com.sip.menuapp.service.SyncService;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -49,6 +63,9 @@ public class MenuItemListActivity extends AppCompatActivity {
     private ItemObserver itemObserver;
     private ContentResolver resolver;
     static Map<String, List<Item>> itemCategoryMap;
+    private static final String SETTINGS_FILENAME = "settings.txt";
+    private static final String TAG = "MenuItemListActivity";
+    SharedPreferences preferences = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +75,113 @@ public class MenuItemListActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         toolbar.setTitle(getTitle());
+
+
+//        preferences = this.getApplicationContext().getSharedPreferences(SETTINGS_FILENAME, MODE_PRIVATE);
+//        if((preferences.getString("ServerURL", null)) == null) {
+//            System.out.println("nothing in SharedPreferences...creating new....");
+//            SharedPreferences.Editor editor = preferences.edit();
+//            editor.putString("ServerURL", "http://192.168.59.5:8080/");
+//            editor.commit();
+//        }
+//        setServerURL();
+
+
+//        String filename="serverURL.txt";
+//        String data = "http://192.168.59.5:8080/";
+//        FileOutputStream fos;
+//        try {
+//            fos = openFileOutput(filename, Context.MODE_PRIVATE);
+//            //default mode is PRIVATE, can be APPEND etc.
+//            fos.write(data.getBytes());
+//            fos.close();
+//
+//            System.out.println(getApplicationContext()+filename + " saved");
+//
+//        } catch (FileNotFoundException e) {e.printStackTrace();}
+//        catch (IOException e) {e.printStackTrace();
+//        }
+//
+//
+//        StringBuffer stringBuffer = new StringBuffer();
+//        try {
+//            //Attaching BufferedReader to the FileInputStream by the help of InputStreamReader
+//            BufferedReader inputReader = new BufferedReader(new InputStreamReader(
+//                    openFileInput(filename)));
+//            String inputString;
+//            //Reading data line by line and storing it into the stringbuffer
+//            while ((inputString = inputReader.readLine()) != null) {
+//                stringBuffer.append(inputString + "\n");
+//            }
+//
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        //Displaying data on the toast
+//        System.out.println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\t"+stringBuffer.toString());
+//        String str = stringBuffer.toString();
+//        System.out.println("getting from SharedPreferences......." + str);
+//        SyncAdapter.serverURL = str;
+//        MenuItemAdapter.serverURL = str;
+
+
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+
+                // Show an expanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        1);
+
+                // MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+        }
+        else if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.READ_EXTERNAL_STORAGE)) {
+
+                // Show an expanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                        2);
+
+                // MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+        }
+        else {
+            writeToFile();
+            String str = readFromFile();
+            SyncAdapter.serverURL = str;
+            MenuItemAdapter.serverURL = str;
+        }
+
+
+
 
         // Create your sync account
         AccountGeneral.createSyncAccount(this);
@@ -73,8 +197,80 @@ public class MenuItemListActivity extends AppCompatActivity {
             // activity should be in two-pane mode.
             mTwoPane = true;
         }
-
         resolver = this.getContentResolver();
+    }
+
+    private void writeToFile() {
+        try {
+            File file = new File(Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_DOWNLOADS), SETTINGS_FILENAME);
+            System.out.println("---------------------------->>>" + file.getAbsolutePath());
+            if (!file.exists()) {
+                Log.e(TAG, "The settings file does not exist....create a new one.......");
+                FileOutputStream outputStream = new FileOutputStream(file);
+                outputStream.write(new String("http://192.168.59.5:8080/").getBytes());
+                outputStream.close();
+            }
+        }
+        catch(FileNotFoundException e){
+            Log.e("login activity", "File not found: " + e.toString());
+        } catch(IOException e){
+            Log.e("login activity", "Can not read file: " + e.toString());
+        }
+
+    }
+
+//    public void setServerURL(){
+//        String str = preferences.getString("ServerURL", null);
+//        System.out.println("getting from SharedPreferences......." + str);
+//        SyncAdapter.serverURL = str;
+//        MenuItemAdapter.serverURL = str;
+//    }
+
+    private String readFromFile() {
+        String state = Environment.getExternalStorageState();
+        boolean isReadable =  (Environment.MEDIA_MOUNTED.equals(state) ||
+                Environment.MEDIA_MOUNTED_READ_ONLY.equals(state));
+        String ret = "";
+
+        if(isReadable) {
+            File file = new File(Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_DOWNLOADS), SETTINGS_FILENAME);
+            if (!file.exists()) {
+                Log.e(TAG, "The settings file does not exist");
+            } else {
+                try {
+                    InputStream inputStream = new FileInputStream(file);
+                    InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+                    BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                    String receiveString = "";
+                    StringBuilder stringBuilder = new StringBuilder();
+
+                    while ((receiveString = bufferedReader.readLine()) != null) {
+                        stringBuilder.append(receiveString);
+                    }
+
+                    inputStream.close();
+                    ret = stringBuilder.toString();
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    Log.e(TAG, "Can not read file: " + e.toString());
+                }
+
+            }
+        }
+        return ret;
+    }
+
+    public File getSettingsFile() {
+        // Get the directory for the user's public downloads directory.
+        File file = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_PICTURES), SETTINGS_FILENAME);
+        if (!file.exists()) {
+            Log.e(TAG, "The settings file does not exist");
+        }
+        return file;
     }
 
     private void loadView() {

@@ -13,21 +13,19 @@ import android.support.annotation.Nullable;
 import com.sip.menuapp.database.DatabaseClient;
 
 public class ItemProvider extends ContentProvider {
-    // Use ints to represent different queries
     private static final int ITEM = 1;
     private static final int ITEM_ID = 2;
     private static final int ITEM_CATEGORY = 3;
 
     private static final UriMatcher uriMatcher;
+    private SQLiteDatabase db;
+
     static {
         // Add all our query types to our UriMatcher
         uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
         uriMatcher.addURI(ItemContract.CONTENT_AUTHORITY, ItemContract.PATH_ITEMS, ITEM);
         uriMatcher.addURI(ItemContract.CONTENT_AUTHORITY, ItemContract.PATH_ITEMS + "/#", ITEM_ID);
     }
-
-    private SQLiteDatabase db;
-
 
     @Override
     public boolean onCreate() {
@@ -52,11 +50,11 @@ public class ItemProvider extends ContentProvider {
     @Nullable
     @Override
     public Cursor query(@NonNull Uri uri, @Nullable String[] projection, @Nullable String selection, @Nullable String[] selectionArgs, @Nullable String sortOrder) {
-        Cursor c;
+        Cursor cursor;
         switch (uriMatcher.match(uri)) {
             // Query for multiple article results
             case ITEM:
-                c = db.query(ItemContract.Items.NAME,
+                cursor = db.query(ItemContract.Items.NAME,
                         projection,
                         selection,
                         selectionArgs,
@@ -68,7 +66,7 @@ public class ItemProvider extends ContentProvider {
             // Query for single article result
             case ITEM_ID:
                 long _id = ContentUris.parseId(uri);
-                c = db.query(ItemContract.Items.ITEM_ID,
+                cursor = db.query(ItemContract.Items.ITEM_ID,
                         projection,
                         ItemContract.Items.ITEM_ID + "=?",
                         new String[] { String.valueOf(_id) },
@@ -80,7 +78,7 @@ public class ItemProvider extends ContentProvider {
             // Query for single article result
 //            case ITEM_CATEGORY:
 ////                long _id = ContentUris.parseId(uri);
-//                c = db.query(ItemContract.Items.NAME,
+//                cursor = db.query(ItemContract.Items.NAME,
 //                        ItemContract.Items.ITEM_CATEGORY,
 //                        ItemContract.Items.ITEM_ID + "=?",
 //                        new String[] { String.valueOf(_id) },
@@ -94,8 +92,8 @@ public class ItemProvider extends ContentProvider {
         // Tell the cursor to register a content observer to observe changes to the
         // URI or its descendants.
         assert getContext() != null;
-        c.setNotificationUri(getContext().getContentResolver(), uri);
-        return c;
+        cursor.setNotificationUri(getContext().getContentResolver(), uri);
+        return cursor;
     }
 
     @Nullable
@@ -138,7 +136,7 @@ public class ItemProvider extends ContentProvider {
 
     @Override
     public int delete(@NonNull Uri uri, @Nullable String selection, @Nullable String[] selectionArgs) {
-        int rows;
+        int rows = 0;
         switch (uriMatcher.match(uri)) {
             case ITEM:
                 rows = db.delete(ItemContract.Items.NAME, selection, selectionArgs);

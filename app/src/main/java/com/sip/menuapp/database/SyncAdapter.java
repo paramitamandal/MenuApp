@@ -18,6 +18,7 @@ import com.sip.menuapp.Item;
 import com.sip.menuapp.ItemContract;
 import com.sip.menuapp.ItemParser;
 import com.sip.menuapp.MenuItemListActivity;
+import com.sip.menuapp.ResourceConstant;
 import com.sip.menuapp.service.SyncService;
 
 import org.json.JSONArray;
@@ -34,25 +35,21 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SyncAdapter extends AbstractThreadedSyncAdapter {
+
     private static final String TAG = "SYNC_ADAPTER";
-    private Context context;
     public static String serverURL;
-    /**
-     * This gives us access to our local data source.
-     */
     private final ContentResolver resolver;
+    private Context context;
 
 
-    public SyncAdapter(Context c, boolean autoInit) {
-        this(c, autoInit, false);
+    public SyncAdapter(Context context, boolean autoInit) {
+        this(context, autoInit, false);
     }
 
-    public SyncAdapter(Context c, boolean autoInit, boolean parallelSync) {
-        super(c, autoInit, parallelSync);
-        this.resolver = c.getContentResolver();
-        this.context = c;
-//        MenuItemListActivity activity = (MenuItemListActivity) this.context;
-//        serverURL = activity.getServerURL();
+    public SyncAdapter(Context context, boolean autoInit, boolean parallelSync) {
+        super(context, autoInit, parallelSync);
+        this.resolver = context.getContentResolver();
+        this.context = context;
     }
 
     /**
@@ -68,13 +65,10 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
         Log.w(TAG, "Starting synchronization...");
 
         try {
-            // Synchronize our news feed
             syncNewsFeed(syncResult);
-
             // Add any other things you may want to sync
-            Intent i = new Intent(SyncService.SYNC_FINISHED);
-            this.context.sendBroadcast(i);
-
+            Intent intent = new Intent(SyncService.SYNC_FINISHED);
+            this.context.sendBroadcast(intent);
         } catch (IOException ex) {
             Log.e(TAG, "Error synchronizing!", ex);
             syncResult.stats.numIoExceptions++;
@@ -85,24 +79,16 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
             Log.e(TAG, "Error synchronizing!", ex);
             syncResult.stats.numAuthExceptions++;
         }
-
         Log.w(TAG, "Finished synchronization!");
     }
 
-    /**
-     * Performs synchronization of our pretend news feed source.
-     * @param syncResult Write our stats to this
-     */
     private void syncNewsFeed(SyncResult syncResult) throws IOException, JSONException, RemoteException, OperationApplicationException {
-        final String rssFeedEndpoint = serverURL + "api/getRecords";//"http://192.168.59.5:8080/api/getRecords";
-//        final String rssFeedEndpoint = "http://192.168.1.12:8080/api/getRecords";
+        final String endpoint = ResourceConstant.SERVER_URL + "api/getRecords";
 
-        // We need to collect all the network items in a hash table
         Log.i(TAG, "Fetching server entries...");
         Map<String, Item> networkEntries = new HashMap<>();
 
-        // Parse the pretend json news feed
-        String jsonFeed = download(rssFeedEndpoint);
+        String jsonFeed = download(endpoint);
         System.out.println("Records\n"+jsonFeed);
         String jsonString = jsonFeed.substring(15,jsonFeed.indexOf("]]")) + "]";
 
@@ -115,20 +101,12 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
         // Create list for batching ContentProvider transactions
         ArrayList<ContentProviderOperation> batch = new ArrayList<>();
 
-        // Compare the hash table of network entries to all the local entries
         Log.i(TAG, "Fetching local entries...");
-        Cursor c = resolver.query(ItemContract.Items.CONTENT_URI, null, null, null, null, null);
-//        assert c != null;
-
-        if (null == c) {
-            /*
-             * Insert code here to handle the error. Be sure not to use the cursor! You may want to
-             * call android.util.Log.e() to log this error.
-             *
-             */
-// If the Cursor is empty, the provider found no matches
-        } else if (c.getCount() < 1) {
-
+        Cursor cursor = resolver.query(ItemContract.Items.CONTENT_URI, null, null, null, null, null);
+        if (null == cursor) {
+            Log.i(TAG, "No records found...");
+        }
+        else if (cursor.getCount() < 1) {
             // Add all the new entries
             for (Item item : networkEntries.values()) {
                 Log.i(TAG, "Scheduling insert: " + item.getName());
@@ -142,9 +120,10 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                         .build());
                 syncResult.stats.numInserts++;
             }
-        } else {
+        }
+        else {
             // Insert code here to do something with the results
-            c.moveToFirst();
+            cursor.moveToFirst();
 
             int id;
             String name;
@@ -153,17 +132,16 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
             String price;
             String category;
             Item found;
-            for (int i = 0; i < c.getCount(); i++) {
+            for (int i = 0; i < cursor.getCount(); i++) {
                 syncResult.stats.numEntries++;
 
                 // Create local item entry
-                id = c.getInt(c.getColumnIndex(ItemContract.Items.ITEM_ID));
-                name = c.getString(c.getColumnIndex(ItemContract.Items.ITEM_NAME));
-                description = c.getString(c.getColumnIndex(ItemContract.Items.ITEM_DESCRIPTION));
-                videoPath = c.getString(c.getColumnIndex(ItemContract.Items.ITEM_VIDEO_PATH));
-                price = c.getString(c.getColumnIndex(ItemContract.Items.ITEM_PRICE));
-                category = c.getString(c.getColumnIndex(ItemContract.Items.ITEM_CATEGORY));
-
+                id = cursor.getInt(cursor.getColumnIndex(ItemContract.Items.ITEM_ID));
+                name = cursor.getString(cursor.getColumnIndex(ItemContract.Items.ITEM_NAME));
+                description = cursor.getString(cursor.getColumnIndex(ItemContract.Items.ITEM_DESCRIPTION));
+                videoPath = cursor.getString(cursor.getColumnIndex(ItemContract.Items.ITEM_VIDEO_PATH));
+                price = cursor.getString(cursor.getColumnIndex(ItemContract.Items.ITEM_PRICE));
+                category = cursor.getString(cursor.getColumnIndex(ItemContract.Items.ITEM_CATEGORY));
 
                 // Try to retrieve the local entry from network entries
                 found = networkEntries.get(id);
@@ -188,7 +166,8 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                                 .build());
                         syncResult.stats.numUpdates++;
                     }
-                } else {
+                }
+                else {
                     // Entry doesn't exist, remove it from the local database
                     Log.i(TAG, "Scheduling delete: " + name);
                     batch.add(ContentProviderOperation.newDelete(ItemContract.Items.CONTENT_URI)
@@ -196,83 +175,10 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                             .build());
                     syncResult.stats.numDeletes++;
                 }
-                c.moveToNext();
+                cursor.moveToNext();
             }
-            c.close();
+            cursor.close();
         }
-
-
-//        if(c != null) {
-//            c.moveToFirst();
-//
-//            int id;
-//            String name;
-//            String description;
-//            String videoPath;
-//            String price;
-//            String category;
-//            Item found;
-//            for (int i = 0; i < c.getCount(); i++) {
-//                syncResult.stats.numEntries++;
-//
-//                // Create local article entry
-//                id = c.getInt(c.getColumnIndex(ItemContract.Items.ITEM_ID));
-//                name = c.getString(c.getColumnIndex(ItemContract.Items.ITEM_NAME));
-//                description = c.getString(c.getColumnIndex(ItemContract.Items.ITEM_DESCRIPTION));
-//                videoPath = c.getString(c.getColumnIndex(ItemContract.Items.ITEM_VIDEO_PATH));
-//                price = c.getString(c.getColumnIndex(ItemContract.Items.ITEM_PRICE));
-//                category = c.getString(c.getColumnIndex(ItemContract.Items.ITEM_CATEGORY));
-//
-//
-//                // Try to retrieve the local entry from network entries
-//                found = networkEntries.get(id);
-//                if (found != null) {
-//                    // The entry exists, remove from hash table to prevent re-inserting it
-//                    networkEntries.remove(id);
-//
-//                    // Check to see if it needs to be updated
-//                    if (!name.equals(found.getName())
-//                            || !description.equals(found.getDescription())
-//                            || !price.equals(found.getPrice())
-//                            || !category.equals(found.getCategory())) {
-//                        // Batch an update for the existing record
-//                        Log.i(TAG, "Scheduling update: " + name);
-//                        batch.add(ContentProviderOperation.newUpdate(ItemContract.Items.CONTENT_URI)
-//                                .withSelection(ItemContract.Items.ITEM_ID + "='" + id + "'", null)
-//                                .withValue(ItemContract.Items.ITEM_NAME, found.getName())
-//                                .withValue(ItemContract.Items.ITEM_DESCRIPTION, found.getDescription())
-//                                .withValue(ItemContract.Items.ITEM_VIDEO_PATH, found.getVideoPath())
-//                                .withValue(ItemContract.Items.ITEM_PRICE, found.getPrice())
-//                                .withValue(ItemContract.Items.ITEM_CATEGORY, found.getCategory())
-//                                .build());
-//                        syncResult.stats.numUpdates++;
-//                    }
-//                } else {
-//                    // Entry doesn't exist, remove it from the local database
-//                    Log.i(TAG, "Scheduling delete: " + name);
-//                    batch.add(ContentProviderOperation.newDelete(ItemContract.Items.CONTENT_URI)
-//                            .withSelection(ItemContract.Items.ITEM_ID + "='" + id + "'", null)
-//                            .build());
-//                    syncResult.stats.numDeletes++;
-//                }
-//                c.moveToNext();
-//            }
-//            c.close();
-//        }
-//
-//        // Add all the new entries
-//        for (Item item : networkEntries.values()) {
-//            Log.i(TAG, "Scheduling insert: " + item.getName());
-//            batch.add(ContentProviderOperation.newInsert(ItemContract.Items.CONTENT_URI)
-//                    .withValue(ItemContract.Items.ITEM_ID, item.getId())
-//                    .withValue(ItemContract.Items.ITEM_NAME, item.getName())
-//                    .withValue(ItemContract.Items.ITEM_DESCRIPTION, item.getDescription())
-//                    .withValue(ItemContract.Items.ITEM_VIDEO_PATH, item.getVideoPath())
-//                    .withValue(ItemContract.Items.ITEM_PRICE, item.getPrice())
-//                    .withValue(ItemContract.Items.ITEM_CATEGORY, item.getCategory())
-//                    .build());
-//            syncResult.stats.numInserts++;
-//        }
 
         // Synchronize by performing batch update
         Log.i(TAG, "Merge solution ready, applying batch update...");
@@ -282,29 +188,21 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
                 false); // IMPORTANT: Do not sync to network
     }
 
-    /**
-     * A blocking method to stream the server's content and build it into a string.
-     * @param url API call
-     * @return String response
-     */
     private String download(String url) throws IOException {
-        // Ensure we ALWAYS close these!
         HttpURLConnection client = null;
-        InputStream is = null;
+        InputStream inputStream = null;
 
         try {
-            // Connect to the server using GET protocol
             URL server = new URL(url);
             client = (HttpURLConnection)server.openConnection();
             client.connect();
 
-            // Check for valid response code from the server
             int status = client.getResponseCode();
-            is = (status == HttpURLConnection.HTTP_OK)
+            inputStream = (status == HttpURLConnection.HTTP_OK)
                     ? client.getInputStream() : client.getErrorStream();
 
             // Build the response or error as a string
-            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+            BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
             StringBuilder sb = new StringBuilder();
             for (String temp; ((temp = br.readLine()) != null);) {
                 sb.append(temp);
@@ -312,19 +210,20 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 
             return sb.toString();
         } finally {
-            if (is != null) { is.close(); }
-            if (client != null) { client.disconnect(); }
+            if (inputStream != null) {
+                inputStream.close();
+            }
+            if (client != null) {
+                client.disconnect();
+            }
         }
     }
 
-    /**
-     * Manual force Android to perform a sync with our SyncAdapter.
-     */
     public static void performSync() {
-        Bundle b = new Bundle();
-        b.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
-        b.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
+        Bundle bundle = new Bundle();
+        bundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
+        bundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
         ContentResolver.requestSync(AccountGeneral.getAccount(),
-                ItemContract.CONTENT_AUTHORITY, b);
+                ItemContract.CONTENT_AUTHORITY, bundle);
     }
 }

@@ -1,44 +1,43 @@
 package com.sip.menuapp;
 
-import android.Manifest;
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.database.ContentObserver;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.sip.menuapp.database.AccountGeneral;
-import com.sip.menuapp.database.DbContent;
+import com.sip.menuapp.database.DatabaseContent;
 import com.sip.menuapp.database.SyncAdapter;
 import com.sip.menuapp.service.SyncService;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -49,26 +48,25 @@ import java.util.Set;
  * An activity representing a list of MenuItems. This activity
  * has different presentations for handset and tablet-size devices. On
  * handsets, the activity presents a list of items, which when touched,
- * lead to a {@link MenuItemDetailActivity} representing
+ * lead to a  MenuItemDetailActivity representing
  * item details. On tablets, the activity presents the list of items and
  * item details side-by-side using two vertical panes.
  */
-public class MenuItemListActivity extends AppCompatActivity {
+public class MenuItemListActivity extends AppCompatActivity implements MenuItemAdapter.Listener, MenuItemQuantityAdapter.Listener{
 
-    /**
-     * Whether or not the activity is in two-pane mode, i.e. running on a tablet
-     * device.
-     */
+    private static final String DATABASE_FILE = "database";
     private boolean mTwoPane;
-    private ItemObserver itemObserver;
-    private ContentResolver resolver;
+//    private ItemObserver itemObserver;
+//    private ContentResolver resolver;
     static Map<String, List<Item>> itemCategoryMap;
-    private static final String SETTINGS_FILENAME = "settings.txt";
     private static final String TAG = "MenuItemListActivity";
     SharedPreferences preferences = null;
+    TextView counterTextView;
+    Context context;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        context = this;
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_menu_item_list);
 
@@ -76,119 +74,66 @@ public class MenuItemListActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         toolbar.setTitle(getTitle());
 
+        LayoutInflater mInflater= LayoutInflater.from(this);
+        View badgeLayoutView = mInflater.inflate(R.layout.badge_icon_layout, null);
+        toolbar.addView(badgeLayoutView, new Toolbar.LayoutParams(Gravity.RIGHT));
+        counterTextView = (TextView) badgeLayoutView.findViewById(R.id.counter);
 
-//        preferences = this.getApplicationContext().getSharedPreferences(SETTINGS_FILENAME, MODE_PRIVATE);
-//        if((preferences.getString("ServerURL", null)) == null) {
-//            System.out.println("nothing in SharedPreferences...creating new....");
-//            SharedPreferences.Editor editor = preferences.edit();
-//            editor.putString("ServerURL", "http://192.168.59.5:8080/");
-//            editor.commit();
-//        }
-//        setServerURL();
+        badgeLayoutView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(MenuItemAdapter.getCurrentOrder().size() > 0) {
+                    final Dialog dialog = new Dialog(context);
+                    dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
 
+                    View orderSummaryView = LayoutInflater.from(context).inflate(R.layout.order_summary, null);
 
-//        String filename="serverURL.txt";
-//        String data = "http://192.168.59.5:8080/";
-//        FileOutputStream fos;
-//        try {
-//            fos = openFileOutput(filename, Context.MODE_PRIVATE);
-//            //default mode is PRIVATE, can be APPEND etc.
-//            fos.write(data.getBytes());
-//            fos.close();
-//
-//            System.out.println(getApplicationContext()+filename + " saved");
-//
-//        } catch (FileNotFoundException e) {e.printStackTrace();}
-//        catch (IOException e) {e.printStackTrace();
-//        }
-//
-//
-//        StringBuffer stringBuffer = new StringBuffer();
-//        try {
-//            //Attaching BufferedReader to the FileInputStream by the help of InputStreamReader
-//            BufferedReader inputReader = new BufferedReader(new InputStreamReader(
-//                    openFileInput(filename)));
-//            String inputString;
-//            //Reading data line by line and storing it into the stringbuffer
-//            while ((inputString = inputReader.readLine()) != null) {
-//                stringBuffer.append(inputString + "\n");
-//            }
-//
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        //Displaying data on the toast
-//        System.out.println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\t"+stringBuffer.toString());
-//        String str = stringBuffer.toString();
-//        System.out.println("getting from SharedPreferences......." + str);
-//        SyncAdapter.serverURL = str;
-//        MenuItemAdapter.serverURL = str;
+                    if (MenuItemAdapter.quantityList != null) {
+                        RecyclerView recyclerView = orderSummaryView.findViewById(R.id.order_item_list_recycler_view);
+                        MenuItemQuantityAdapter menuItemQuantityAdapter = new MenuItemQuantityAdapter((MenuItemQuantityAdapter.Listener) context, MenuItemAdapter.getCurrentOrder());
+                        recyclerView.setAdapter(menuItemQuantityAdapter);
+                        recyclerView.setLayoutManager(new LinearLayoutManager(context));
+                        recyclerView.addItemDecoration(new SimpleDividerItemDecoration(context));
+                    }
 
+                    dialog.setContentView(orderSummaryView);
+                    dialog.show();
+                    dialog.setCanceledOnTouchOutside(false);
+                    WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
+                            WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT);
+                    lp.copyFrom(dialog.getWindow().getAttributes());
+                    dialog.getWindow().setAttributes(lp);
 
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-
-                // Show an expanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
-
-            } else {
-
-                // No explanation needed, we can request the permission.
-
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                        1);
-
-                // MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
+                    final Button closeBtn = orderSummaryView.findViewById(R.id.btn_close);
+                    final Button okBtn = orderSummaryView.findViewById(R.id.btn_Ok);
+                    closeBtn.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            dialog.dismiss();
+                        }
+                    });
+                    okBtn.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            dialog.dismiss();
+                        }
+                    });
+                }
             }
+        });
+
+
+        if(!isDB_SyncDone()) {
+            // Create your sync account
+            AccountGeneral.createSyncAccount(this);
+            // Perform a manual sync by calling this:
+            SyncAdapter.performSync();
         }
-        else if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.READ_EXTERNAL_STORAGE)) {
-
-                // Show an expanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
-
-            } else {
-
-                // No explanation needed, we can request the permission.
-
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
-                        2);
-
-                // MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
-            }
+        else{
+            loadView();
         }
-        else {
-            writeToFile();
-            String str = readFromFile();
-            SyncAdapter.serverURL = str;
-            MenuItemAdapter.serverURL = str;
-        }
-
-
-
-
-        // Create your sync account
-        AccountGeneral.createSyncAccount(this);
-        // Perform a manual sync by calling this:
-        SyncAdapter.performSync();
         // Setup example content observer
-        itemObserver = new ItemObserver();
+//        itemObserver = new ItemObserver();
 
         if (findViewById(R.id.menu_item_detail_container) != null) {
             // The detail container view will be present only in the
@@ -197,27 +142,7 @@ public class MenuItemListActivity extends AppCompatActivity {
             // activity should be in two-pane mode.
             mTwoPane = true;
         }
-        resolver = this.getContentResolver();
-    }
-
-    private void writeToFile() {
-        try {
-            File file = new File(Environment.getExternalStoragePublicDirectory(
-                    Environment.DIRECTORY_DOWNLOADS), SETTINGS_FILENAME);
-            System.out.println("---------------------------->>>" + file.getAbsolutePath());
-            if (!file.exists()) {
-                Log.e(TAG, "The settings file does not exist....create a new one.......");
-                FileOutputStream outputStream = new FileOutputStream(file);
-                outputStream.write(new String("http://192.168.59.5:8080/").getBytes());
-                outputStream.close();
-            }
-        }
-        catch(FileNotFoundException e){
-            Log.e("login activity", "File not found: " + e.toString());
-        } catch(IOException e){
-            Log.e("login activity", "Can not read file: " + e.toString());
-        }
-
+//  /      resolver = this.getContentResolver();
     }
 
 //    public void setServerURL(){
@@ -227,55 +152,9 @@ public class MenuItemListActivity extends AppCompatActivity {
 //        MenuItemAdapter.serverURL = str;
 //    }
 
-    private String readFromFile() {
-        String state = Environment.getExternalStorageState();
-        boolean isReadable =  (Environment.MEDIA_MOUNTED.equals(state) ||
-                Environment.MEDIA_MOUNTED_READ_ONLY.equals(state));
-        String ret = "";
-
-        if(isReadable) {
-            File file = new File(Environment.getExternalStoragePublicDirectory(
-                    Environment.DIRECTORY_DOWNLOADS), SETTINGS_FILENAME);
-            if (!file.exists()) {
-                Log.e(TAG, "The settings file does not exist");
-            } else {
-                try {
-                    InputStream inputStream = new FileInputStream(file);
-                    InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
-                    BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-                    String receiveString = "";
-                    StringBuilder stringBuilder = new StringBuilder();
-
-                    while ((receiveString = bufferedReader.readLine()) != null) {
-                        stringBuilder.append(receiveString);
-                    }
-
-                    inputStream.close();
-                    ret = stringBuilder.toString();
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    Log.e(TAG, "Can not read file: " + e.toString());
-                }
-
-            }
-        }
-        return ret;
-    }
-
-    public File getSettingsFile() {
-        // Get the directory for the user's public downloads directory.
-        File file = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES), SETTINGS_FILENAME);
-        if (!file.exists()) {
-            Log.e(TAG, "The settings file does not exist");
-        }
-        return file;
-    }
-
     private void loadView() {
-        DbContent.loadData(this);
-        itemCategoryMap = DbContent.ITEM_CATEGORY_MAP;
+        DatabaseContent.loadData(this);
+        itemCategoryMap = DatabaseContent.ITEM_CATEGORY_MAP;
         View recyclerView = findViewById(R.id.category_list);
         assert recyclerView != null;
         Set<String> mapCategory = itemCategoryMap.keySet();
@@ -290,7 +169,8 @@ public class MenuItemListActivity extends AppCompatActivity {
     }
 
     private void setupRecyclerView(@NonNull RecyclerView recyclerView, List<String> category) {
-        recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(this, category, mTwoPane));
+        recyclerView.setAdapter(new CategoryRecyclerViewAdapter(this, category, mTwoPane));
+        recyclerView.addItemDecoration(new SimpleDividerItemDecoration(this));
     }
     @Override
     protected void onResume() {
@@ -303,90 +183,110 @@ public class MenuItemListActivity extends AppCompatActivity {
         super.onPause();
         unregisterReceiver(syncFinishedReceiver);
     }
+    private Boolean exit = false;
+
+    @Override
+    public void onBackPressed() {
+        if (exit) {
+            finish(); // finish activity
+        } else {
+            Toast.makeText(this, "Press Back again to Exit.",
+                    Toast.LENGTH_SHORT).show();
+            exit = true;
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    exit = false;
+                }
+            }, 3 * 1000);
+
+        }
+
+    }
 
     private BroadcastReceiver syncFinishedReceiver = new BroadcastReceiver() {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            System.out.println("Sync finished, should refresh nao!!");
+            preferences = getApplicationContext().getSharedPreferences(DATABASE_FILE, MODE_PRIVATE);
+            if((preferences.getString("DB_SYNC", null)) == null) {
+                System.out.println("nothing in SharedPreferences...creating new....");
+                SharedPreferences.Editor editor = preferences.edit();
+                editor.putString("DB_SYNC", "done");
+                editor.commit();
+            }
+            System.out.println("Sync finished, should refresh now!!");
             loadView();
         }
     };
+
+    private boolean isDB_SyncDone() {
+        preferences = getApplicationContext().getSharedPreferences(DATABASE_FILE, MODE_PRIVATE);
+        if ((preferences.getString("DB_SYNC", null)) == null) {
+            return false;
+        }
+        return true;
+    }
 
     @Override
     protected void onStart() {
         super.onStart();
 
         // Register the observer at the start of our activity
-        getContentResolver().registerContentObserver(
-                ItemContract.Items.CONTENT_URI, // Uri to observe (our articles)
-                true, // Observe its descendants
-                itemObserver); // The observer
+//        getContentResolver().registerContentObserver(
+//                ItemContract.Items.CONTENT_URI, // Uri to observe (our articles)
+//                true, // Observe its descendants
+//                itemObserver); // The observer
     }
 
     @Override
     protected void onStop() {
         super.onStop();
 
-        if (itemObserver != null) {
-            // Unregister the observer at the stop of our activity
-            getContentResolver().unregisterContentObserver(itemObserver);
-        }
+//        if (itemObserver != null) {
+//            // Unregister the observer at the stop of our activity
+//            getContentResolver().unregisterContentObserver(itemObserver);
+//        }
     }
 
-
-    private void refreshItems() {
-        Log.i(getClass().getName(), "Items data has changed!");
+    @Override
+    public void onUpdate(String itemName, int quantity) {
+        counterTextView.setText(MenuItemAdapter.getCurrentOrder().size() + "");
     }
 
-    private final class ItemObserver extends ContentObserver {
-        private ItemObserver() {
-            // Ensure callbacks happen on the UI thread
-            super(new Handler(Looper.getMainLooper()));
-        }
-
-        @Override
-        public void onChange(boolean selfChange, Uri uri) {
-            // Handle your data changes here!!!
-            refreshItems();
-        }
+    @Override
+    public void onUpdateOrder() {
+        counterTextView.setText(MenuItemAdapter.getCurrentOrder().size() + "");
     }
 
+//    private void refreshItems() {
+//        Log.i(getClass().getName(), "Items data has changed!");
+//    }
 
-    public static class SimpleItemRecyclerViewAdapter
-            extends RecyclerView.Adapter<SimpleItemRecyclerViewAdapter.ViewHolder> {
+//    private final class ItemObserver extends ContentObserver {
+//        private ItemObserver() {
+//            // Ensure callbacks happen on the UI thread
+//            super(new Handler(Looper.getMainLooper()));
+//        }
+//
+//        @Override
+//        public void onChange(boolean selfChange, Uri uri) {
+//            // Handle your data changes here!!!
+//            refreshItems();
+//        }
+//    }
+
+    public static class CategoryRecyclerViewAdapter
+            extends RecyclerView.Adapter<CategoryRecyclerViewAdapter.ViewHolder> {
 
         private final MenuItemListActivity mParentActivity;
         private final List<String> mValues;
         private final boolean mTwoPane;
+        int selectedPosition=-1;
 
-        private final View.OnClickListener mOnClickListener = new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                String categoryName = (String) view.getTag();
-
-                if (mTwoPane) {
-                    Bundle arguments = new Bundle();
-                    arguments.putString(MenuItemDetailFragment.ITEM_CATEGORY, categoryName);
-                    MenuItemDetailFragment fragment = new MenuItemDetailFragment();
-                    fragment.setArguments(arguments);
-                    mParentActivity.getSupportFragmentManager().beginTransaction()
-                            .replace(R.id.menu_item_detail_container, fragment)
-                            .commit();
-                } else {
-                    Context context = view.getContext();
-                    Intent intent = new Intent(context, MenuItemDetailActivity.class);
-                    intent.putExtra(MenuItemDetailFragment.ITEM_CATEGORY, categoryName);
-
-                    context.startActivity(intent);
-                }
-            }
-        };
-
-
-        SimpleItemRecyclerViewAdapter(MenuItemListActivity parent,
-                                      List<String> items,
-                                      boolean twoPane) {
+        CategoryRecyclerViewAdapter(MenuItemListActivity parent,
+                                    List<String> items,
+                                    boolean twoPane) {
             mValues = items;
             mParentActivity = parent;
             mTwoPane = twoPane;
@@ -400,10 +300,39 @@ public class MenuItemListActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onBindViewHolder(final ViewHolder holder, int position) {
+        public void onBindViewHolder(final ViewHolder holder, final int position) {
+            if(selectedPosition==position) {
+                holder.itemView.setBackgroundColor(Color.parseColor("#808080"));
+            }
+            else {
+                holder.itemView.setBackgroundColor(Color.parseColor("#D3D3D3"));
+            }
             holder.categoryNameTextView.setText(mValues.get(position));
             holder.itemView.setTag(mValues.get(position));
-            holder.itemView.setOnClickListener(mOnClickListener);
+            holder.itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    selectedPosition=position;
+                    notifyDataSetChanged();
+                    String categoryName = (String) view.getTag();
+
+//                    if (mTwoPane) {
+                        Bundle arguments = new Bundle();
+                        arguments.putString(MenuItemDetailFragment.ITEM_CATEGORY, categoryName);
+                        MenuItemDetailFragment fragment = new MenuItemDetailFragment();
+                        fragment.setArguments(arguments);
+                        mParentActivity.getSupportFragmentManager().beginTransaction()
+                                .replace(R.id.menu_item_detail_container, fragment)
+                                .commit();
+//                    } else {
+//                        Context context = view.getContext();
+//                        Intent intent = new Intent(context, MenuItemDetailActivity.class);
+//                        intent.putExtra(MenuItemDetailFragment.ITEM_CATEGORY, categoryName);
+//
+//                        context.startActivity(intent);
+//                    }
+                }
+            });
         }
 
         @Override
@@ -420,4 +349,5 @@ public class MenuItemListActivity extends AppCompatActivity {
             }
         }
     }
+
 }

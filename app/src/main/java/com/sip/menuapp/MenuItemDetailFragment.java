@@ -8,14 +8,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.sip.menuapp.database.DbContent;
+import com.sip.menuapp.database.DatabaseContent;
 
 import java.util.List;
 
 /**
  * A fragment representing a single MenuItem detail screen.
  * This fragment is either contained in a {@link MenuItemListActivity}
- * in two-pane mode (on tablets) or a {@link MenuItemDetailActivity}
+ * in two-pane mode (on tablets) or a MenuItemDetailActivity
  * on handsets.
  */
 public class MenuItemDetailFragment extends Fragment {
@@ -25,10 +25,7 @@ public class MenuItemDetailFragment extends Fragment {
      */
     public static final String ITEM_CATEGORY = "item_category";
     private List<Item> itemList;
-    /**
-     * Mandatory empty constructor for the fragment manager to instantiate the
-     * fragment (e.g. upon screen orientation changes).
-     */
+    private MenuItemAdapter menuItemAdapter;
     public MenuItemDetailFragment() {
     }
 
@@ -37,7 +34,7 @@ public class MenuItemDetailFragment extends Fragment {
         super.onCreate(savedInstanceState);
 
         if (getArguments().containsKey(ITEM_CATEGORY)) {
-            itemList = DbContent.ITEM_CATEGORY_MAP.get(getArguments().getString(ITEM_CATEGORY));
+            itemList = DatabaseContent.ITEM_CATEGORY_MAP.get(getArguments().getString(ITEM_CATEGORY));
         }
     }
 
@@ -46,13 +43,14 @@ public class MenuItemDetailFragment extends Fragment {
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.menu_item_detail, container, false);
 
-        // Show the dummy content as text in a TextView.
         if (itemList != null) {
             RecyclerView recyclerView = rootView.findViewById(R.id.items_list_recycler_view);
-            recyclerView.setAdapter(new MenuItemAdapter( this.getActivity() , itemList));
+            menuItemAdapter = new MenuItemAdapter( this.getActivity(), itemList);
+            menuItemAdapter.setListener((MenuItemAdapter.Listener) this.getActivity());
+            recyclerView.setAdapter(menuItemAdapter);
             recyclerView.setLayoutManager(new LinearLayoutManager(this.getContext()));
+            recyclerView.addItemDecoration(new SimpleDividerItemDecoration(this.getContext()));
         }
-
         return rootView;
     }
 }

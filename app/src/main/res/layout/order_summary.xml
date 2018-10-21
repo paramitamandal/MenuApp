@@ -13,10 +13,12 @@
             android:layout_height="wrap_content"
             android:layout_margin="@dimen/text_margin"
             android:text="Your Order:" />
+
         <Button
             android:id="@+id/btn_close"
-            android:layout_width="50dp"
+            android:layout_width="48dp"
             android:layout_height="wrap_content"
+            android:layout_gravity="right"
             android:onClick="closeButton"
             android:text="X"
             android:textSize="25sp" />

@@ -45,9 +45,9 @@ public class MenuItemQuantityAdapter extends RecyclerView.Adapter<MenuItemQuanti
     @Override
     public void onBindViewHolder(@NonNull MenuItemQuantityAdapter.ViewHolder holder, final int i) {
         String itemName = this.orderItemNames[i];
-        int itemQuantity = this.orderList.get(itemName);
+        holder.quantity = this.orderList.get(itemName);
         holder.itemNameTextView.setText(itemName);
-        holder.itemQuantityEditText.setText(itemQuantity+"");
+        holder.itemQuantityEditText.setText(holder.quantity+"");
         holder.itemView.setTag(itemName);
     }
 

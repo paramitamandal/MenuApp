@@ -63,6 +63,7 @@ public class MenuItemListActivity extends AppCompatActivity implements MenuItemA
     SharedPreferences preferences = null;
     TextView counterTextView;
     Context context;
+    RecyclerView recyclerView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -145,17 +146,10 @@ public class MenuItemListActivity extends AppCompatActivity implements MenuItemA
 //  /      resolver = this.getContentResolver();
     }
 
-//    public void setServerURL(){
-//        String str = preferences.getString("ServerURL", null);
-//        System.out.println("getting from SharedPreferences......." + str);
-//        SyncAdapter.serverURL = str;
-//        MenuItemAdapter.serverURL = str;
-//    }
-
     private void loadView() {
         DatabaseContent.loadData(this);
         itemCategoryMap = DatabaseContent.ITEM_CATEGORY_MAP;
-        View recyclerView = findViewById(R.id.category_list);
+        recyclerView = findViewById(R.id.category_list);
         assert recyclerView != null;
         Set<String> mapCategory = itemCategoryMap.keySet();
         Iterator<String> iterator = mapCategory.iterator();
@@ -168,10 +162,20 @@ public class MenuItemListActivity extends AppCompatActivity implements MenuItemA
         setupRecyclerView((RecyclerView) recyclerView, categoryList);
     }
 
-    private void setupRecyclerView(@NonNull RecyclerView recyclerView, List<String> category) {
+    private void setupRecyclerView(@NonNull final RecyclerView recyclerView, List<String> category) {
         recyclerView.setAdapter(new CategoryRecyclerViewAdapter(this, category, mTwoPane));
         recyclerView.addItemDecoration(new SimpleDividerItemDecoration(this));
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if(recyclerView.findViewHolderForAdapterPosition(0) != null) {
+                    recyclerView.findViewHolderForAdapterPosition(0).itemView.performClick();
+                }
+            }
+        },1000);
     }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -257,6 +261,7 @@ public class MenuItemListActivity extends AppCompatActivity implements MenuItemA
     @Override
     public void onUpdateOrder() {
         counterTextView.setText(MenuItemAdapter.getCurrentOrder().size() + "");
+        recyclerView.findViewHolderForAdapterPosition(0).itemView.performClick();
     }
 
 //    private void refreshItems() {

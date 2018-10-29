@@ -4,6 +4,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Color;
+import android.os.AsyncTask;
 import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentActivity;
 import android.support.v7.widget.RecyclerView;
@@ -13,18 +14,26 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHolder> {
 
@@ -51,6 +60,23 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
             }
         }
         return currentOrderMap;
+    }
+
+    public static boolean exists(String URLName){
+        boolean existing = false;
+        try {
+            HttpURLConnection.setFollowRedirects(false);
+            HttpURLConnection con =  (HttpURLConnection) new URL(URLName).openConnection();
+            con.setRequestMethod("HEAD");
+            if (con.getResponseCode() == HttpURLConnection.HTTP_OK){
+                existing = true;
+            }
+            con.disconnect();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return existing;
     }
 
     public MenuItemAdapter(FragmentActivity parent,
@@ -113,7 +139,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
         final TextView itemNameTextView;
         final TextView itemDescriptionTextView;
         final TextView itemPriceTextView;
-        final Button videoPlayBtn;
+        final ImageView videoPlayBtn;
         final Button incrementBtn;
         final Button decrementBtn;
         final EditText itemQuantityEditText;
@@ -129,6 +155,55 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
             incrementBtn = view.findViewById(R.id.btn_increment);
             decrementBtn = view.findViewById(R.id.btn_decrement);
             itemQuantityEditText = (EditText) view.findViewById(R.id.item_quantity_text);
+            itemQuantityEditText.setKeyListener(null);
+
+//            final String serverURLWithEndPoint = ResourceConstant.SERVER_URL + "api/getVideo?id=80";
+            final String serverURLWithEndPoint = "http://172.26.95.91:8080/api/getVideo?id=80";
+            boolean bResponse = exists(serverURLWithEndPoint);
+            if (bResponse==true)
+            {
+//                videoPlayBtn.setEnabled(true);
+                videoPlayBtn.setVisibility(View.VISIBLE);
+            }
+            else
+            {
+//                videoPlayBtn.setImageAlpha(250);
+                videoPlayBtn.setVisibility(View.GONE);
+            }
+
+//            MyTask task = new MyTask();
+//            task.execute(serverURLWithEndPoint);
+
+
+//            final ScheduledThreadPoolExecutor myTimer = new ScheduledThreadPoolExecutor(1);
+//            myTimer.scheduleAtFixedRate(new Runnable() {
+//
+//                @Override
+//                public void run() {
+//
+//                    try {
+//                        HttpURLConnection.setFollowRedirects(false);
+//                        HttpURLConnection con =  (HttpURLConnection) new URL(serverURLWithEndPoint).openConnection();
+//                        con.setRequestMethod("HEAD");
+//                        System.out.println(con.getResponseCode());
+//
+//                        if(con.getResponseCode() == HttpURLConnection.HTTP_OK){
+//                            videoPlayBtn.setVisibility(View.VISIBLE);
+//                            System.out.println("Having Video URL.....................................");
+//                        }else{
+//                            System.out.println("Noooooooooooooooo URL.....................................");
+//                            videoPlayBtn.setVisibility(View.GONE);
+//                        }
+//                    }
+//                    catch (Exception e) {
+//                        e.printStackTrace();
+//                        return;
+//                    }
+//
+//                }
+//            }, 0,10000, TimeUnit.MILLISECONDS);
+
+
 
             videoPlayBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -151,6 +226,7 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
                     final WebView webView = (WebView) dialog.findViewById(R.id.video_view);
 
                     webView.setWebViewClient(new WebViewClient());
+
                     webView.getSettings().setJavaScriptEnabled(true);
                     webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
                     webView.getSettings().setPluginState(WebSettings.PluginState.ON);
@@ -198,5 +274,43 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
             });
 
         }
+
+
+//        private class MyTask extends AsyncTask<String, Void, Boolean> {
+//
+//            @Override
+//            protected void onPreExecute() {
+//
+//            }
+//
+//            @Override
+//            protected Boolean doInBackground(String... params) {
+//
+//                try {
+//                    HttpURLConnection.setFollowRedirects(false);
+//                    HttpURLConnection con =  (HttpURLConnection) new URL(params[0]).openConnection();
+//                    con.setRequestMethod("HEAD");
+//                    System.out.println(con.getResponseCode());
+//                    return (con.getResponseCode() == HttpURLConnection.HTTP_OK);
+//                }
+//                catch (Exception e) {
+//                    e.printStackTrace();
+//                    return false;
+//                }
+//            }
+//
+//            @Override
+//            protected void onPostExecute(Boolean result) {
+//                boolean bResponse = result;
+//                if (bResponse==true)
+//                {
+//                    videoPlayBtn.setVisibility(View.VISIBLE);
+//                }
+//                else
+//                {
+//                    videoPlayBtn.setVisibility(View.GONE);
+//                }
+//            }
+//        }
     }
 }

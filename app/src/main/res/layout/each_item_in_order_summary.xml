@@ -12,7 +12,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentRight="true"
-            android:layout_gravity="end">
+            android:layout_gravity="right">
             <Button
                 android:id="@+id/btn_decrement"
                 android:layout_width="50dp"
@@ -25,11 +25,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_toRightOf="@id/btn_decrement"
-                android:inputType="text"
+                android:inputType="numberDecimal"
                 android:padding="10dp"
                 android:text="0"
                 android:textColor="@android:color/black"
-                android:textSize="16sp" />
+                android:textSize="16sp"/>
             <Button
                 android:id="@+id/btn_increment"
                 android:layout_width="50dp"

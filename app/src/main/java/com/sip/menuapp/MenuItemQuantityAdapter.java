@@ -67,6 +67,7 @@ public class MenuItemQuantityAdapter extends RecyclerView.Adapter<MenuItemQuanti
             super(view);
             itemNameTextView = (TextView) view.findViewById(R.id.item_name_text);
             itemQuantityEditText = (EditText) view.findViewById(R.id.item_quantity_text);
+            itemQuantityEditText.setKeyListener(null);
             incrementBtn = view.findViewById(R.id.btn_increment);
             decrementBtn = view.findViewById(R.id.btn_decrement);
 

@@ -24,7 +24,8 @@
         android:layout_height="match_parent"
         app:layoutManager="LinearLayoutManager"
         tools:context="com.sip.menuapp.MenuItemListActivity"
-        tools:listitem="@layout/single_menu_item" />
+        tools:listitem="@layout/single_menu_item"
+        android:background="@mipmap/menu_left_pane"/>
 
     <FrameLayout
         android:id="@+id/menu_item_detail_container"

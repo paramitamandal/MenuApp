@@ -39,6 +39,7 @@ import com.sip.menuapp.database.SyncAdapter;
 import com.sip.menuapp.service.SyncService;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +74,9 @@ public class MenuItemListActivity extends AppCompatActivity implements MenuItemA
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        toolbar.setTitle(getTitle());
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
+        toolbar.setTitle("");
+
 
         LayoutInflater mInflater= LayoutInflater.from(this);
         View badgeLayoutView = mInflater.inflate(R.layout.badge_icon_layout, null);
@@ -111,12 +114,25 @@ public class MenuItemListActivity extends AppCompatActivity implements MenuItemA
                         @Override
                         public void onClick(View v) {
                             dialog.dismiss();
+                            recyclerView.findViewHolderForAdapterPosition(0).itemView.performClick();
                         }
                     });
                     okBtn.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
                             dialog.dismiss();
+                            recyclerView.findViewHolderForAdapterPosition(0).itemView.performClick();
+                        }
+                    });
+
+                    final Button resetBtn = orderSummaryView.findViewById(R.id.btn_Reset);
+                    resetBtn.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            dialog.dismiss();
+                            MenuItemAdapter.quantityList = new HashMap<String, Integer>();
+                            counterTextView.setText(0+"");
+                            recyclerView.findViewHolderForAdapterPosition(0).itemView.performClick();
                         }
                     });
                 }
@@ -124,15 +140,15 @@ public class MenuItemListActivity extends AppCompatActivity implements MenuItemA
         });
 
 
-        if(!isDB_SyncDone()) {
+//        if(!isDB_SyncDone()) {
             // Create your sync account
             AccountGeneral.createSyncAccount(this);
             // Perform a manual sync by calling this:
             SyncAdapter.performSync();
-        }
-        else{
+//        }
+//        else{
             loadView();
-        }
+//        }
         // Setup example content observer
 //        itemObserver = new ItemObserver();
 
@@ -261,7 +277,6 @@ public class MenuItemListActivity extends AppCompatActivity implements MenuItemA
     @Override
     public void onUpdateOrder() {
         counterTextView.setText(MenuItemAdapter.getCurrentOrder().size() + "");
-        recyclerView.findViewHolderForAdapterPosition(0).itemView.performClick();
     }
 
 //    private void refreshItems() {
@@ -301,6 +316,7 @@ public class MenuItemListActivity extends AppCompatActivity implements MenuItemA
         public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             View view = LayoutInflater.from(parent.getContext())
                     .inflate(R.layout.single_category, parent, false);
+            view.setBackgroundResource(R.mipmap.menu_left_pane);
             return new ViewHolder(view);
         }
 
